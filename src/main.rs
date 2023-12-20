@@ -1,11 +1,11 @@
-use std::{collections::BTreeSet, marker::PhantomData};
+use std::marker::PhantomData;
 
 use halo2_proofs::{
     circuit::SimpleFloorPlanner, dev::MockProver, halo2curves::ff::PrimeField, plonk::Circuit,
 };
 use regex::{DFADef, RegexCircuitConfig};
 
-use crate::constants::MAX_STATE;
+use crate::dfa::{gen_regex_dfa_def, gen_traces};
 
 pub(crate) mod constants;
 pub mod dfa;
@@ -43,20 +43,17 @@ impl<F: PrimeField> Circuit<F> for RegexCircuit<F> {
 fn main() {
     use halo2_proofs::halo2curves::bn256::Fr;
 
-    let mut state_lookup = BTreeSet::new();
-    state_lookup.insert((1, 0, 1));
-    state_lookup.insert((2, 1, 2));
-    state_lookup.insert((3, 2, 0));
+    let regex = "[a-z]+";
+    let input = b"auidsafddsavbjhsaoefd";
+
+    let dfa = gen_regex_dfa_def(regex);
+    let traces = gen_traces(regex, input);
 
     let circuit = RegexCircuit::<Fr> {
-        dfa: DFADef {
-            state_lookup,
-            first_state_val: 0,
-            accepted_state_val: 2,
-        },
-        traces: vec![(9, 1, 0), (9, 2, 1), (9, 3, 2)],
+        dfa,
+        traces,
         _marker: PhantomData,
     };
-    let prover = MockProver::run(4, &circuit, vec![]).unwrap();
+    let prover = MockProver::run(8, &circuit, vec![]).unwrap();
     prover.assert_satisfied();
 }

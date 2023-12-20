@@ -38,6 +38,9 @@ pub fn gen_regex_dfa_def(regex: &str) -> DFADef {
     let first_state_val = dfa.special().min_start.as_u64();
     let accepted_state_val = dfa.special().min_match.as_u64();
 
+    // Handle last transition
+    state_lookup.insert((0, accepted_state_val, 0u64));
+
     DFADef {
         state_lookup,
         first_state_val,
@@ -66,6 +69,7 @@ pub fn gen_traces(regex: &str, input: &[u8]) -> Vec<(u16, u8, u64)> {
         traces.push((b as u16, class_id, state.as_u64()));
         state = dfa.next_state(state, b);
     }
+    traces.push((0, 0, state.as_u64()));
     state = dfa.next_eoi_state(state);
     traces.push((0, 0, state.as_u64()));
     
