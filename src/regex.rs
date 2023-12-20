@@ -39,7 +39,7 @@ pub struct DFADef {
 
 #[derive(Clone)]
 pub struct DFATable<F> {
-    pub character: TableColumn,
+    pub class_id: TableColumn,
     pub state: TableColumn,
     pub next_state: TableColumn,
     _marker: PhantomData<F>,
@@ -47,14 +47,14 @@ pub struct DFATable<F> {
 
 impl<F: PrimeField> DFATable<F> {
     pub fn configure(meta: &mut ConstraintSystem<F>) -> Self {
-        let character = meta.lookup_table_column();
+        let class_id = meta.lookup_table_column();
         let state = meta.lookup_table_column();
         let next_state = meta.lookup_table_column();
-        meta.annotate_lookup_column(character, || "character");
+        meta.annotate_lookup_column(class_id, || "class_id");
         meta.annotate_lookup_column(state, || "state");
         meta.annotate_lookup_column(next_state, || "next_state");
         Self {
-            character,
+            class_id,
             state,
             next_state,
             _marker: PhantomData,
@@ -75,8 +75,8 @@ impl<F: PrimeField> DFATable<F> {
                                       next_state: u64|
                  -> Result<(), halo2_proofs::plonk::Error> {
                     table.assign_cell(
-                        || format!("character at {}", offset),
-                        self.character,
+                        || format!("class_id at {}", offset),
+                        self.class_id,
                         offset,
                         || Value::known(F::from(char as u64)),
                     )?;
@@ -96,8 +96,8 @@ impl<F: PrimeField> DFATable<F> {
                     Ok(())
                 };
                 assign_row(0, MAX_STATE, MAX_STATE)?;
-                for (character, state, next_state) in def.state_lookup.iter() {
-                    assign_row(*character, *state, *next_state)?;
+                for (class_id, state, next_state) in def.state_lookup.iter() {
+                    assign_row(*class_id, *state, *next_state)?;
                 }
                 Ok(())
             },
@@ -107,13 +107,14 @@ impl<F: PrimeField> DFATable<F> {
 }
 
 /// Table layout
-/// | character | state | q_state_check | q_enable |
+/// | character | class_id | state | q_state_check | q_enable |
 
 #[derive(Clone)]
 pub struct RegexCircuitConfig<F> {
     q_state_check: Selector,
     state: Column<Advice>,
     character: Column<Advice>,
+    class_id: Column<Advice>,
     expected_state: Column<Advice>,
     q_enable: Selector,
     dfa_table: DFATable<F>,
@@ -127,6 +128,7 @@ impl<F: PrimeField> RegexCircuitConfig<F> {
         let state = meta.advice_column();
         let expected_state = meta.advice_column();
         let character = meta.advice_column();
+        let class_id = meta.advice_column();
 
         let dfa_table = DFATable::configure(meta);
 
@@ -142,11 +144,11 @@ impl<F: PrimeField> RegexCircuitConfig<F> {
             let q_enable = meta.query_selector(q_enable);
             let cur_state = meta.query_advice(state, Rotation::cur());
             let next_state = meta.query_advice(state, Rotation::next());
-            let character = meta.query_advice(character, Rotation::cur());
+            let class_id = meta.query_advice(class_id, Rotation::cur());
             let dummy_state = MAX_STATE.expr();
 
             vec![
-                (q_enable.clone() * character.clone(), dfa_table.character),
+                (q_enable.clone() * class_id.clone(), dfa_table.class_id),
                 (
                     q_enable.clone() * cur_state.clone()
                         + (1.expr() - q_enable.clone()) * dummy_state.clone(),
@@ -163,6 +165,7 @@ impl<F: PrimeField> RegexCircuitConfig<F> {
         Self {
             q_enable,
             q_state_check,
+            class_id,
             state,
             expected_state,
             character,
@@ -173,7 +176,7 @@ impl<F: PrimeField> RegexCircuitConfig<F> {
     pub fn load(
         &self,
         dfa_def: &DFADef,
-        traces: &[(u8, u64)],
+        traces: &[(u16, u8, u64)],
         layouter: &mut impl Layouter<F>,
     ) -> Result<(), halo2_proofs::plonk::Error> {
         self.dfa_table.assign(layouter, dfa_def)?;
@@ -184,7 +187,7 @@ impl<F: PrimeField> RegexCircuitConfig<F> {
                 let mut offset = 0;
                 let mut traces = traces.iter().peekable();
 
-                while let Some((character, state)) = traces.next() {
+                while let Some((character, class_id, state)) = traces.next() {
                     self.q_enable.enable(&mut region, offset)?;
                     // enable init state check
                     let expected_state = if offset == 0 {
@@ -210,6 +213,12 @@ impl<F: PrimeField> RegexCircuitConfig<F> {
                         self.character,
                         offset,
                         || Value::known(F::from(*character as u64)),
+                    )?;
+                    region.assign_advice(
+                        || "assign class_id",
+                        self.class_id,
+                        offset,
+                        || Value::known(F::from(*class_id as u64)),
                     )?;
                     region.assign_advice(
                         || "assign state",

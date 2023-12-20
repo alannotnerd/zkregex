@@ -14,7 +14,7 @@ mod regex;
 #[derive(Default)]
 pub(crate) struct RegexCircuit<F> {
     pub(crate) dfa: DFADef,
-    pub(crate) traces: Vec<(u8, u64)>,
+    pub(crate) traces: Vec<(u16, u8, u64)>,
     pub(crate) _marker: PhantomData<F>,
 }
 
@@ -54,7 +54,7 @@ fn main() {
             first_state_val: 0,
             accepted_state_val: 2,
         },
-        traces: vec![(1, 0), (2, 1), (3, 2)],
+        traces: vec![(9, 1, 0), (9, 2, 1), (9, 3, 2)],
         _marker: PhantomData,
     };
     let prover = MockProver::run(4, &circuit, vec![]).unwrap();
