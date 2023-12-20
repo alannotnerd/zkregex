@@ -8,7 +8,7 @@ use regex::{DFADef, RegexCircuitConfig};
 use crate::constants::MAX_STATE;
 
 pub(crate) mod constants;
-mod dfa;
+pub mod dfa;
 mod regex;
 
 #[derive(Default)]

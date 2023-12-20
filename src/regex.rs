@@ -26,7 +26,7 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DFADef {
     /// A set from (character, current state id in DFA, next state id in DFA).
     pub state_lookup: BTreeSet<(u8, u64, u64)>,
