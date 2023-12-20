@@ -487,6 +487,7 @@ dependencies = [
 [[package]]
 name = "regex-automata"
 version = "0.4.3"
+source = "git+https://github.com/alannotnerd/regex#dfc3120ee6b392af6ac56d64fb1fd7779180b3c5"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -496,6 +497,7 @@ dependencies = [
 [[package]]
 name = "regex-syntax"
 version = "0.8.2"
+source = "git+https://github.com/alannotnerd/regex#dfc3120ee6b392af6ac56d64fb1fd7779180b3c5"
 
 [[package]]
 name = "serde"

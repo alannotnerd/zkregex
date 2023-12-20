@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeSet, HashMap, HashSet},
-    marker::PhantomData,
-};
+use std::{collections::BTreeSet, marker::PhantomData};
 
 use halo2_proofs::{
     circuit::{Layouter, Value},
@@ -37,6 +34,8 @@ pub struct DFADef {
     pub accepted_state_val: u64,
 }
 
+/// Table that contains all valid transitions. It doesn't contains travil transitions, eg, from
+/// `DEAD` state to `DEAD` state.
 #[derive(Clone)]
 pub struct DFATable<F> {
     pub class_id: TableColumn,
@@ -108,15 +107,22 @@ impl<F: PrimeField> DFATable<F> {
 
 /// Table layout
 /// | character | class_id | state | q_state_check | q_enable |
+///
+/// NOTE: We should also add constraints for ``(character, class_id)`, which is trivial.`
 
 #[derive(Clone)]
 pub struct RegexCircuitConfig<F> {
+    /// Only enabled at the begin and the end row. In this stage, we need to check the state equals
+    /// to init state or accepted state
     q_state_check: Selector,
     state: Column<Advice>,
     character: Column<Advice>,
     class_id: Column<Advice>,
+    /// Points out the expected matching state.  
     expected_state: Column<Advice>,
+    /// Deactive in padding rows, otherwise active.
     q_enable: Selector,
+    /// Transition table
     dfa_table: DFATable<F>,
 }
 

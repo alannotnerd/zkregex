@@ -10,6 +10,8 @@ use regex_automata::{
 
 use crate::regex::DFADef;
 
+/// Convert the regular expressions into a DFA. It only supports the `Unanchored` mode, which means
+/// the position matchers, like '^', '&', will lead to an error.
 pub fn gen_regex_dfa_def(regex: &str) -> DFADef {
     let dfa = Builder::new()
         .configure(
@@ -48,6 +50,7 @@ pub fn gen_regex_dfa_def(regex: &str) -> DFADef {
     }
 }
 
+/// A helper function that generates the matching process traces step by step.
 pub fn gen_traces(regex: &str, input: &[u8]) -> Vec<(u16, u8, u64)> {
     let dfa = Builder::new()
         .configure(
@@ -72,7 +75,7 @@ pub fn gen_traces(regex: &str, input: &[u8]) -> Vec<(u16, u8, u64)> {
     traces.push((0, 0, state.as_u64()));
     state = dfa.next_eoi_state(state);
     traces.push((0, 0, state.as_u64()));
-    
+
     traces
 }
 
